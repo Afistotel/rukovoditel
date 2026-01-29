@@ -20,7 +20,7 @@ define('CFG_USE_LDAP_LOGIN_ONLY', false);
 define('CFG_APP_LOCALE','en_US.UTF-8');
 
 //list of available plugins separated by comma
-define('AVAILABLE_PLUGINS', 'ext');
+define('AVAILABLE_PLUGINS', 'ext,auth_imap');
 
 //to load dashboard counters by ajax
 define('CFG_COUNTER_AJAX_LOAD', false);
@@ -74,4 +74,9 @@ define('SESSION_COOKIE_PATH', '');
 define('DB_FORCE_SQL_MODE', true); //true or false
 define('DB_SET_SQL_MODE', ''); //to remove STRICT_TRANS_TABLES
         
-	
+// Авторизация через IMAP сервер. Поддержка info@neonate.ru
+define('AUTH_IMAP_HOST', 'imap.yourdomain.ru'); //Адрес IMAP сервера
+define('AUTH_IMAP_PORT', 993); //Порт сервера
+define('AUTH_IMAP_ENCRYPTION', 'ssl'); //Протокол подключения tls или ssl
+define('AUTH_IMAP_VALIDATE_CERT', true); //Если у вас самоподписанный сертификат, укажите false
+define('AUTH_IMAP_USER_GROUP', 0);	

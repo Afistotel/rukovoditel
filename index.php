@@ -11,43 +11,37 @@
  * https://fips.ru/EGD/3b18c104-1db7-4f2d-83fb-2d38e1474ca3
  */
 
-require('includes/application_top.php');
+require_once __DIR__ . '/includes/application_top.php';
+require_once __DIR__ . '/includes/plugins.php';
+require_once __DIR__ . '/includes/plugins_menu.php';
 
-//include available plugins
-require('includes/plugins.php');
 
-//include overall action for whole module        
-if(is_file($path = $app_plugin_path . 'modules/' . $app_module . '/module_top.php'))
-{
-    require($path);
+$modulePath = $app_plugin_path . 'modules/' . $app_module . '/';
+
+// Подключение модуля
+if (is_file($modulePath . 'module_top.php')) {
+    require_once $modulePath . 'module_top.php';
 }
 
-//include plugins menu  
-require('includes/plugins_menu.php');
-
-//include module action      
-if(is_file($path = $app_plugin_path . 'modules/' . $app_module . '/actions/' . $app_action . '.php'))
-{
-    require($path);
+// Подключение действия модуля
+$actionPath = $modulePath . 'actions/' . $app_action . '.php';
+if (is_file($actionPath)) {
+    require_once $actionPath;
 }
 
-if(IS_AJAX)
-{
-    if(is_file($path = $app_plugin_path . 'modules/' . $app_module . '/views/' . $app_action . '.php'))
-    {
-        require($path);
+if (IS_AJAX) {
+    $viewPath = $modulePath . 'views/' . $app_action . '.php';
+    if (is_file($viewPath)) {
+        require_once $viewPath;
     }
-}
-else
-{
-    if(substr($app_layout, 0, 8) === 'plugins/')
-    {
-        require($app_layout);
-    }
-    else
-    {
-        require('template/' . $app_layout);
+} else {
+    // Подключение шаблона
+    if (str_starts_with($app_layout, 'plugins/')) {
+        require_once $app_layout;
+    } else {
+        require_once __DIR__ . '/template/' . $app_layout;
     }
 }
 
-require('includes/application_bottom.php');
+require_once __DIR__ . '/includes/application_bottom.php';
+
