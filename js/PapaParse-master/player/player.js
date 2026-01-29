@@ -43,7 +43,7 @@ $(function()
 			}
 
 			start = performance.now();
-			
+
 			$('#files').parse({
 				config: config,
 				before: function(file, inputElem)
@@ -68,9 +68,11 @@ $(function()
 	{
 		var input = $('#input').val();
 		var delim = $('#delimiter').val();
+		var header = $('#header').prop('checked');
 
 		var results = Papa.unparse(input, {
-			delimiter: delim
+			delimiter: delim,
+			header: header,
 		});
 
 		console.log("Unparse complete!");
@@ -106,6 +108,7 @@ function buildConfig()
 		skipEmptyLines: $('#skipEmptyLines').prop('checked'),
 		chunk: $('#chunk').prop('checked') ? chunkFn : undefined,
 		beforeFirstChunk: undefined,
+		skipFirstNLines: $('#skipFirstNLines').val()
 	};
 
 	function getLineEnding()
@@ -127,14 +130,14 @@ function stepFn(results, parserHandle)
 	rows += results.data.length;
 
 	parser = parserHandle;
-	
+
 	if (pauseChecked)
 	{
 		console.log(results, results.data[0]);
 		parserHandle.pause();
 		return;
 	}
-	
+
 	if (printStepChecked)
 		console.log(results, results.data[0]);
 }
@@ -172,7 +175,7 @@ function completeFn()
 			&& arguments[0]
 			&& arguments[0].data)
 		rows = arguments[0].data.length;
-	
+
 	console.log("Finished input (async). Time:", end-start, arguments);
 	console.log("Rows:", rows, "Stepped:", stepped, "Chunks:", chunks);
 }
