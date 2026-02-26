@@ -53,9 +53,6 @@ class Validations
         return self::validateCellRange($cellRange);
     }
 
-    private const SETMAXROW = '${1}1:${2}' . AddressRange::MAX_ROW;
-    private const SETMAXCOL = 'A${1}:' . AddressRange::MAX_COLUMN . '${2}';
-
     /**
      * Validate a cell range.
      *
@@ -71,8 +68,8 @@ class Validations
             // Convert Column ranges like 'A:C' to 'A1:C1048576'
             //      or Row ranges like '1:3' to 'A1:XFD3'
             $addressRange = (string) preg_replace(
-                ['/^([A-Z]+):([A-Z]+)$/i', '/^(\d+):(\d+)$/'],
-                [self::SETMAXROW, self::SETMAXCOL],
+                ['/^([A-Z]+):([A-Z]+)$/i', '/^(\\d+):(\\d+)$/'],
+                ['${1}1:${2}1048576', 'A${1}:XFD${2}'],
                 $addressRange
             );
 

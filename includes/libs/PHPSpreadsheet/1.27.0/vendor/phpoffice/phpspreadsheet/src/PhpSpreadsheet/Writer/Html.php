@@ -7,11 +7,9 @@ use PhpOffice\PhpSpreadsheet\Calculation\Calculation;
 use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Chart\Chart;
-use PhpOffice\PhpSpreadsheet\Document\Properties;
 use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use PhpOffice\PhpSpreadsheet\RichText\Run;
 use PhpOffice\PhpSpreadsheet\Settings;
-use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Shared\Drawing as SharedDrawing;
 use PhpOffice\PhpSpreadsheet\Shared\File;
 use PhpOffice\PhpSpreadsheet\Shared\Font as SharedFont;
@@ -344,20 +342,12 @@ class Html extends BaseWriter
 
     private static function generateMeta(?string $val, string $desc): string
     {
-        return ($val || $val === '0')
+        return $val
             ? ('      <meta name="' . $desc . '" content="' . htmlspecialchars($val, Settings::htmlEntityFlags()) . '" />' . PHP_EOL)
             : '';
     }
 
     public const BODY_LINE = '  <body>' . PHP_EOL;
-
-    private const CUSTOM_TO_META = [
-        Properties::PROPERTY_TYPE_BOOLEAN => 'bool',
-        Properties::PROPERTY_TYPE_DATE => 'date',
-        Properties::PROPERTY_TYPE_FLOAT => 'float',
-        Properties::PROPERTY_TYPE_INTEGER => 'int',
-        Properties::PROPERTY_TYPE_STRING => 'string',
-    ];
 
     /**
      * Generate HTML header.
@@ -384,36 +374,6 @@ class Html extends BaseWriter
         $html .= self::generateMeta($properties->getCategory(), 'category');
         $html .= self::generateMeta($properties->getCompany(), 'company');
         $html .= self::generateMeta($properties->getManager(), 'manager');
-        $html .= self::generateMeta($properties->getLastModifiedBy(), 'lastModifiedBy');
-        $date = Date::dateTimeFromTimestamp((string) $properties->getCreated());
-        $date->setTimeZone(Date::getDefaultOrLocalTimeZone());
-        $html .= self::generateMeta($date->format(DATE_W3C), 'created');
-        $date = Date::dateTimeFromTimestamp((string) $properties->getModified());
-        $date->setTimeZone(Date::getDefaultOrLocalTimeZone());
-        $html .= self::generateMeta($date->format(DATE_W3C), 'modified');
-
-        $customProperties = $properties->getCustomProperties();
-        foreach ($customProperties as $customProperty) {
-            $propertyValue = $properties->getCustomPropertyValue($customProperty);
-            $propertyType = $properties->getCustomPropertyType($customProperty);
-            $propertyQualifier = self::CUSTOM_TO_META[$propertyType] ?? null;
-            if ($propertyQualifier !== null) {
-                if ($propertyType === Properties::PROPERTY_TYPE_BOOLEAN) {
-                    $propertyValue = $propertyValue ? '1' : '0';
-                } elseif ($propertyType === Properties::PROPERTY_TYPE_DATE) {
-                    $date = Date::dateTimeFromTimestamp((string) $propertyValue);
-                    $date->setTimeZone(Date::getDefaultOrLocalTimeZone());
-                    $propertyValue = $date->format(DATE_W3C);
-                } else {
-                    $propertyValue = (string) $propertyValue;
-                }
-                $html .= self::generateMeta($propertyValue, htmlspecialchars("custom.$propertyQualifier.$customProperty"));
-            }
-        }
-
-        if (!empty($properties->getHyperlinkBase())) {
-            $html .= '      <base href="' . htmlspecialchars($properties->getHyperlinkBase()) . '" />' . PHP_EOL;
-        }
 
         $html .= $includeStyles ? $this->generateStyles(true) : $this->generatePageDeclarations(true);
 
@@ -563,7 +523,7 @@ class Html extends BaseWriter
             $html .= '<ul class="navigation">' . PHP_EOL;
 
             foreach ($sheets as $sheet) {
-                $html .= '  <li class="sheet' . $sheetId . '"><a href="#sheet' . $sheetId . '">' . htmlspecialchars($sheet->getTitle()) . '</a></li>' . PHP_EOL;
+                $html .= '  <li class="sheet' . $sheetId . '"><a href="#sheet' . $sheetId . '">' . $sheet->getTitle() . '</a></li>' . PHP_EOL;
                 ++$sheetId;
             }
 
@@ -612,9 +572,6 @@ class Html extends BaseWriter
         [$rowMax, $colMax, $anyfound] = $this->extendRowsForCharts($worksheet, $row);
 
         foreach ($worksheet->getDrawingCollection() as $drawing) {
-            if ($drawing instanceof Drawing && $drawing->getPath() === '') {
-                continue;
-            }
             $anyfound = true;
             $imageTL = Coordinate::coordinateFromString($drawing->getCoordinates());
             $imageCol = Coordinate::columnIndexFromString($imageTL[0]);
@@ -690,7 +647,7 @@ class Html extends BaseWriter
             }
             $filedesc = $drawing->getDescription();
             $filedesc = $filedesc ? htmlspecialchars($filedesc, ENT_QUOTES) : 'Embedded image';
-            if ($drawing instanceof Drawing && $drawing->getPath() !== '') {
+            if ($drawing instanceof Drawing) {
                 $filename = $drawing->getPath();
 
                 // Strip off eventual '.'
@@ -709,15 +666,12 @@ class Html extends BaseWriter
                 $imageData = self::winFileToUrl($filename, $this->isMPdf);
 
                 if ($this->embedImages || substr($imageData, 0, 6) === 'zip://') {
-                    $imageData = 'data:,';
                     $picture = @file_get_contents($filename);
                     if ($picture !== false) {
-                        $mimeContentType = (string) @mime_content_type($filename);
-                        if (substr($mimeContentType, 0, 6) === 'image/') {
-                            // base64 encode the binary data
-                            $base64 = base64_encode($picture);
-                            $imageData = 'data:' . $mimeContentType . ';base64,' . $base64;
-                        }
+                        $imageDetails = getimagesize($filename) ?: [];
+                        // base64 encode the binary data
+                        $base64 = base64_encode($picture);
+                        $imageData = 'data:' . $imageDetails['mime'] . ';base64,' . $base64;
                     }
                 }
 
@@ -739,8 +693,7 @@ class Html extends BaseWriter
                     //  max-width: 100% ensures that image doesnt overflow containing cell
                     //  width: X sets width of supplied image.
                     //  As a result, images bigger than cell will be contained and images smaller will not get stretched
-                    $html .= '<img alt="' . $filedesc . '" src="' . $dataUri . '" style="max-width:100%;width:' . $drawing->getWidth() . 'px;left: ' .
-                    $drawing->getOffsetX() . 'px; top: ' . $drawing->getOffsetY() . 'px;position: absolute; z-index: 1;" />';
+                    $html .= '<img alt="' . $filedesc . '" src="' . $dataUri . '" style="max-width:100%;width:' . $drawing->getWidth() . 'px;" />';
                 }
             }
         }
@@ -1075,7 +1028,7 @@ class Html extends BaseWriter
         }
 
         $css['color'] = '#' . $font->getColor()->getRGB();
-        $css['font-family'] = '\'' . htmlspecialchars((string) $font->getName(), ENT_QUOTES) . '\'';
+        $css['font-family'] = '\'' . $font->getName() . '\'';
         $css['font-size'] = $font->getSize() . 'pt';
 
         return $css;
@@ -1240,7 +1193,7 @@ class Html extends BaseWriter
     {
         $html = '';
         if (count($worksheet->getBreaks()) > 0) {
-            $breaks = $worksheet->getRowBreaks();
+            $breaks = $worksheet->getBreaks();
 
             // check if a break is needed before this row
             if (isset($breaks['A' . $row])) {
@@ -1373,7 +1326,7 @@ class Html extends BaseWriter
 
             // Converts the cell content so that spaces occuring at beginning of each new line are replaced by &nbsp;
             // Example: "  Hello\n to the world" is converted to "&nbsp;&nbsp;Hello\n&nbsp;to the world"
-            $cellData = (string) preg_replace('/(?m)(?:^|\G) /', '&nbsp;', $cellData);
+            $cellData = (string) preg_replace('/(?m)(?:^|\\G) /', '&nbsp;', $cellData);
 
             // convert newline "\n" to '<br>'
             $cellData = nl2br($cellData);
@@ -1518,16 +1471,7 @@ class Html extends BaseWriter
 
             // Hyperlink?
             if ($worksheet->hyperlinkExists($coordinate) && !$worksheet->getHyperlink($coordinate)->isInternal()) {
-                $url = $worksheet->getHyperlink($coordinate)->getUrl();
-                $urlDecode1 = html_entity_decode($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-                $urlTrim = preg_replace('/^\s+/u', '', $urlDecode1) ?? $urlDecode1;
-                $parseScheme = preg_match('/^([\w\s\x00-\x1f]+):/u', strtolower($urlTrim), $matches);
-                if ($parseScheme === 1 && !in_array($matches[1], ['http', 'https', 'file', 'ftp', 'mailto', 's3'], true)) {
-                    $cellData = htmlspecialchars($url, Settings::htmlEntityFlags());
-                    $cellData = self::replaceControlChars($cellData);
-                } else {
-                    $cellData = '<a href="' . htmlspecialchars($url, Settings::htmlEntityFlags()) . '" title="' . htmlspecialchars($worksheet->getHyperlink($coordinate)->getTooltip(), Settings::htmlEntityFlags()) . '">' . $cellData . '</a>';
-                }
+                $cellData = '<a href="' . htmlspecialchars($worksheet->getHyperlink($coordinate)->getUrl(), Settings::htmlEntityFlags()) . '" title="' . htmlspecialchars($worksheet->getHyperlink($coordinate)->getTooltip(), Settings::htmlEntityFlags()) . '">' . $cellData . '</a>';
             }
 
             // Should the cell be written or is it swallowed by a rowspan or colspan?
@@ -1567,20 +1511,6 @@ class Html extends BaseWriter
 
         // Return
         return $html;
-    }
-
-    private static function replaceNonAscii(array $matches): string
-    {
-        return '&#' . mb_ord($matches[0], 'UTF-8') . ';';
-    }
-
-    private static function replaceControlChars(string $convert): string
-    {
-        return (string) preg_replace_callback(
-            '/[\x00-\x1f]/',
-            [self::class, 'replaceNonAscii'],
-            $convert
-        );
     }
 
     /**
@@ -1717,7 +1647,7 @@ class Html extends BaseWriter
         $color = null; // initialize
         $matches = [];
 
-        $color_regex = '/^\[[a-zA-Z]+\]/';
+        $color_regex = '/^\\[[a-zA-Z]+\\]/';
         if (preg_match($color_regex, $format, $matches)) {
             $color = str_replace(['[', ']'], '', $matches[0]);
             $color = strtolower($color);

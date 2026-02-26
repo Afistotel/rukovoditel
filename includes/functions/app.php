@@ -1563,7 +1563,7 @@ function app_include_codemirror_in_layout()
     
     if($app_user['group_id']>0) return '';
     
-    $versioin = '5.65.18';
+    $versioin = '5.63.3';
     
     $html = '
         <script src="js/codemirror/' . $versioin . '/lib/codemirror.js"></script>	        

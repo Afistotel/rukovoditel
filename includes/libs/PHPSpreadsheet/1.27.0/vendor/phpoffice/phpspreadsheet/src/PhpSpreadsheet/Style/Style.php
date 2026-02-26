@@ -2,10 +2,7 @@
 
 namespace PhpOffice\PhpSpreadsheet\Style;
 
-use PhpOffice\PhpSpreadsheet\Calculation\Functions;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
-use PhpOffice\PhpSpreadsheet\Exception;
-use PhpOffice\PhpSpreadsheet\Shared\StringHelper;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
 class Style extends Supervisor
@@ -102,7 +99,7 @@ class Style extends Supervisor
         // Initialise values
         $this->font = new Font($isSupervisor, $isConditional);
         $this->fill = new Fill($isSupervisor, $isConditional);
-        $this->borders = new Borders($isSupervisor, $isConditional);
+        $this->borders = new Borders($isSupervisor);
         $this->alignment = new Alignment($isSupervisor, $isConditional);
         $this->numberFormat = new NumberFormat($isSupervisor, $isConditional);
         $this->protection = new Protection($isSupervisor, $isConditional);
@@ -125,7 +122,7 @@ class Style extends Supervisor
     public function getSharedComponent(): self
     {
         $activeSheet = $this->getActiveSheet();
-        $selectedCell = Functions::trimSheetFromCellReference($this->getActiveCell()); // e.g. 'A1'
+        $selectedCell = $this->getActiveCell(); // e.g. 'A1'
 
         if ($activeSheet->cellExists($selectedCell)) {
             $xfIndex = $activeSheet->getCell($selectedCell)->getXfIndex();
@@ -206,15 +203,8 @@ class Style extends Supervisor
         if ($this->isSupervisor) {
             $pRange = $this->getSelectedCells();
 
-            // Uppercase coordinate and strip any Worksheet reference from the selected range
+            // Uppercase coordinate
             $pRange = strtoupper($pRange);
-            if (strpos($pRange, '!') !== false) {
-                $pRangeWorksheet = StringHelper::strToUpper(trim(substr($pRange, 0, (int) strrpos($pRange, '!')), "'"));
-                if ($pRangeWorksheet !== '' && StringHelper::strToUpper($this->getActiveSheet()->getTitle()) !== $pRangeWorksheet) {
-                    throw new Exception('Invalid Worksheet for specified Range');
-                }
-                $pRange = strtoupper(Functions::trimSheetFromCellReference($pRange));
-            }
 
             // Is it a cell range or a single cell?
             if (strpos($pRange, ':') === false) {

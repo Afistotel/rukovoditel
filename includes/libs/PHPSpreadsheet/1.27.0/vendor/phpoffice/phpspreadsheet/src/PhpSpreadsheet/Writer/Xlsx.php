@@ -31,6 +31,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Workbook;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Worksheet;
 use ZipArchive;
 use ZipStream\Exception\OverflowException;
+use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
 
 class Xlsx extends BaseWriter
@@ -376,7 +377,7 @@ class Xlsx extends BaseWriter
         }
 
         // Add theme to ZIP file
-        $zipContent['xl/theme/theme1.xml'] = $this->getWriterPartTheme()->writeTheme($this->spreadSheet);
+        $zipContent['xl/theme/theme1.xml'] = $this->getWriterPartTheme()->writeTheme();
 
         // Add string table to ZIP file
         $zipContent['xl/sharedStrings.xml'] = $this->getWriterPartStringTable()->writeStringTable($this->stringTable);
@@ -495,9 +496,7 @@ class Xlsx extends BaseWriter
 
                 // Media
                 foreach ($this->spreadSheet->getSheet($i)->getHeaderFooter()->getImages() as $image) {
-                    if ($image->getPath() !== '') {
-                        $zipContent['xl/media/' . $image->getIndexedFilename()] = file_get_contents($image->getPath());
-                    }
+                    $zipContent['xl/media/' . $image->getIndexedFilename()] = file_get_contents($image->getPath());
                 }
             }
 
@@ -513,9 +512,6 @@ class Xlsx extends BaseWriter
             if ($this->getDrawingHashTable()->getByIndex($i) instanceof WorksheetDrawing) {
                 $imageContents = null;
                 $imagePath = $this->getDrawingHashTable()->getByIndex($i)->getPath();
-                if ($imagePath === '') {
-                    continue;
-                }
                 if (strpos($imagePath, 'zip://') !== false) {
                     $imagePath = substr($imagePath, 6);
                     $imagePathSplitted = explode('#', $imagePath);
@@ -550,7 +546,11 @@ class Xlsx extends BaseWriter
 
         $this->openFileHandle($filename);
 
-        $this->zip = ZipStream0::newZipStream($this->fileHandle);
+        $options = new Archive();
+        $options->setEnableZip64(false);
+        $options->setOutputStream($this->fileHandle);
+
+        $this->zip = new ZipStream(null, $options);
 
         $this->addZipFiles($zipContent);
 
@@ -717,9 +717,6 @@ class Xlsx extends BaseWriter
     {
         $data = null;
         $filename = $drawing->getPath();
-        if ($filename === '') {
-            return null;
-        }
         $imageData = getimagesize($filename);
 
         if (!empty($imageData)) {

@@ -1,6 +1,6 @@
 {
 	"name": "papaparse",
-	"version": "5.5.3",
+	"version": "4.1.2",
 	"description": "Fast and powerful CSV parser for the browser that supports web workers and streaming large files. Converts CSV to JSON and JSON to CSV.",
 	"keywords": [
 		"csv",
@@ -24,35 +24,37 @@
 		"multi-threaded",
 		"jquery-plugin"
 	],
-	"homepage": "https://www.papaparse.com/",
+	"homepage": "http://papaparse.com",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/mholt/PapaParse.git"
+		"url": "https://github.com/mholt/PapaParse.git"
 	},
 	"author": {
 		"name": "Matthew Holt",
 		"url": "https://twitter.com/mholt6"
 	},
-	"license": "MIT",
+	"licenses": [
+		{
+			"type": "MIT",
+			"url": "http://opensource.org/licenses/MIT"
+		}
+	],
 	"main": "papaparse.js",
-	"browser": "papaparse.min.js",
 	"devDependencies": {
-		"chai": "^4.2.0",
+		"chai": "^3.0.0",
 		"connect": "^3.3.3",
-		"eslint": "^4.19.1",
-		"grunt": ">=1.5.3",
-		"grunt-contrib-uglify": "^5.2.0",
-		"mocha": "^5.2.0",
-		"mocha-headless-chrome": "^4.0.0",
-		"open": "7.0.0",
+		"grunt": "^0.4.5",
+		"grunt-contrib-uglify": "^0.6.0",
+		"mocha": "^2.2.5",
+		"mocha-phantomjs": "^3.5.4",
+		"open": "0.0.5",
+		"phantomjs": "1.9.1 - 1.9.7-15",
 		"serve-static": "^1.7.1"
 	},
 	"scripts": {
-		"lint": "eslint --no-ignore papaparse.js Gruntfile.js .eslintrc.js 'tests/**/*.js'",
-		"build": "grunt build",
 		"test-browser": "node tests/test.js",
-		"test-mocha-headless-chrome": "node tests/test.js --mocha-headless-chrome",
+		"test-phantomjs": "node tests/test.js --phantomjs",
 		"test-node": "mocha tests/node-tests.js tests/test-cases.js",
-		"test": "npm run lint && npm run test-node && npm run test-mocha-headless-chrome"
+		"test": "npm run test-node && npm run test-phantomjs"
 	}
 }
