@@ -76,7 +76,7 @@ try {
     return;
 }
 
-$check_query = db_query("select id, field_6, multiple_access_groups from app_entity_1 where field_12='" . db_input($username) . "' ");
+$check_query = db_query("select id, field_6, multiple_access_groups from app_entity_1 where field_9='" . db_input($email) . "' ");
 
 $isFirstLogin = false;
 if(!$check = db_fetch_array($check_query)) {
